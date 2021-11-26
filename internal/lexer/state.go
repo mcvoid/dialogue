@@ -110,34 +110,23 @@ func LexFrontMatter(l *Lexer) State {
 		emit(l, lexeme.Semicolon)
 		return LexFrontMatter
 	}
-	if strings.HasPrefix(l.input[l.pos:], BoolType) {
-		l.pos += len(BoolType)
-		emit(l, lexeme.Type)
-		return LexFrontMatter
-	}
-	if strings.HasPrefix(l.input[l.pos:], NumberType) {
-		l.pos += len(NumberType)
-		emit(l, lexeme.Type)
-		return LexFrontMatter
-	}
-	if strings.HasPrefix(l.input[l.pos:], StringType) {
-		l.pos += len(StringType)
-		emit(l, lexeme.Type)
-		return LexFrontMatter
-	}
-	if strings.HasPrefix(l.input[l.pos:], NullType) {
-		l.pos += len(NullType)
-		emit(l, lexeme.Type)
-		return LexFrontMatter
-	}
-	if strings.HasPrefix(l.input[l.pos:], ExternKeyword) {
-		l.pos += len(ExternKeyword)
-		emit(l, lexeme.ExternKeyword)
-		return LexFrontMatter
-	}
 	if accept(l, SymbolStart) {
 		acceptRun(l, SymbolTail)
-		emit(l, lexeme.Symbol)
+
+		switch l.input[l.start:l.pos] {
+		case BoolType:
+			fallthrough
+		case NumberType:
+			fallthrough
+		case StringType:
+			fallthrough
+		case NullType:
+			emit(l, lexeme.Type)
+		case ExternKeyword:
+			emit(l, lexeme.ExternKeyword)
+		default:
+			emit(l, lexeme.Symbol)
+		}
 		return LexFrontMatter
 	}
 	if strings.HasPrefix(l.input[l.pos:], Comment) {
@@ -323,13 +312,6 @@ func LexCode(l *Lexer) State {
 		{LineEnd, LexLineEndInCode},
 		{FencedCodeBlockDelimiter, LexCloseCodeFence},
 		{CodeDelimiter, LexCloseInlineCode},
-		{TrueLiteral, LexTrue},
-		{FalseLiteral, LexFalse},
-		{GotoLiteral, LexGoto},
-		{NullLiteral, LexNull},
-		{IfLiteral, LexIf},
-		{ElseLiteral, LexElse},
-		{WhileLiteral, LexWhile},
 		{Comment, LexComment},
 	}
 
@@ -374,7 +356,24 @@ func LexCode(l *Lexer) State {
 func LexSymbol(l *Lexer) State {
 	accept(l, SymbolStart)
 	acceptRun(l, SymbolTail)
-	emit(l, lexeme.Symbol)
+	switch l.input[l.start:l.pos] {
+	case TrueLiteral:
+		fallthrough
+	case FalseLiteral:
+		emit(l, lexeme.Boolean)
+	case GotoLiteral:
+		emit(l, lexeme.GotoLiteral)
+	case NullLiteral:
+		emit(l, lexeme.Null)
+	case IfLiteral:
+		emit(l, lexeme.IfLiteral)
+	case ElseLiteral:
+		emit(l, lexeme.ElseLiteral)
+	case WhileLiteral:
+		emit(l, lexeme.WhileLiteral)
+	default:
+		emit(l, lexeme.Symbol)
+	}
 	return LexCode
 }
 
@@ -397,48 +396,6 @@ func LexNumber(l *Lexer) State {
 	}
 
 	emit(l, lexeme.Number)
-	return LexCode
-}
-
-func LexGoto(l *Lexer) State {
-	l.pos += len(GotoLiteral)
-	emit(l, lexeme.GotoLiteral)
-	return LexCode
-}
-
-func LexTrue(l *Lexer) State {
-	l.pos += len(TrueLiteral)
-	emit(l, lexeme.Boolean)
-	return LexCode
-}
-
-func LexFalse(l *Lexer) State {
-	l.pos += len(FalseLiteral)
-	emit(l, lexeme.Boolean)
-	return LexCode
-}
-
-func LexNull(l *Lexer) State {
-	l.pos += len(NullLiteral)
-	emit(l, lexeme.Null)
-	return LexCode
-}
-
-func LexIf(l *Lexer) State {
-	l.pos += len(IfLiteral)
-	emit(l, lexeme.IfLiteral)
-	return LexCode
-}
-
-func LexElse(l *Lexer) State {
-	l.pos += len(ElseLiteral)
-	emit(l, lexeme.ElseLiteral)
-	return LexCode
-}
-
-func LexWhile(l *Lexer) State {
-	l.pos += len(WhileLiteral)
-	emit(l, lexeme.WhileLiteral)
 	return LexCode
 }
 
